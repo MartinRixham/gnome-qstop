@@ -1,0 +1,63 @@
+#qstop Adwaita (light) theme
+#GNOME HIG palette
+
+# Main background, empty for terminal default, need to be empty if you want transparent background
+theme[main_bg]="#fafafb"
+
+# Main text color
+theme[main_fg]="#241f31"
+
+# Title color for boxes
+theme[title]="#000000"
+
+# Highlight color for keyboard shortcuts and focused elements
+theme[hi_fg]="#1c71d8"
+
+# Background color of active toggles and selected items
+theme[selected_bg]="#3584e4"
+
+# Foreground color of active toggles and selected items
+theme[selected_fg]="#ffffff"
+
+# Color of inactive/disabled text
+theme[inactive_fg]="#9a9996"
+
+# Background color of empty meter segments
+theme[meter_bg]="#deddda"
+
+# Outline color of inactive toggles
+theme[div_line]="#c0bfbc"
+
+# Status box outline color
+theme[status_box]="#9a9996"
+
+# Sliders box outline color
+theme[sliders_box]="#9a9996"
+
+# Toggles box outline color
+theme[toggles_box]="#9a9996"
+
+# Volume slider colors
+theme[volume_start]="#62a0ea"
+theme[volume_mid]="#3584e4"
+theme[volume_end]="#1a5fb4"
+
+# Microphone slider colors
+theme[mic_start]="#62a0ea"
+theme[mic_mid]="#3584e4"
+theme[mic_end]="#1a5fb4"
+
+# Brightness slider colors
+theme[brightness_start]="#f6d32d"
+theme[brightness_mid]="#e5a50a"
+theme[brightness_end]="#c64600"
+
+# Keyboard backlight slider colors
+theme[kbd_start]="#99c1f1"
+theme[kbd_mid]="#3584e4"
+theme[kbd_end]="#1a5fb4"
+
+# Battery meter colors, start is empty and end is full
+theme[battery_start]="#c01c28"
+theme[battery_mid]="#e5a50a"
+theme[battery_end]="#26a269"

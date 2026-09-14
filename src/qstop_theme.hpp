@@ -1,0 +1,73 @@
+/* Copyright 2026 Martin Rixham
+
+   Portions adapted from btop++, Copyright 2021 Aristocratos (jakob@qvantnet.com),
+   originally licensed under the Apache License, Version 2.0.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+indent = tab
+tab-size = 4
+*/
+
+#pragma once
+
+#include <array>
+#include <filesystem>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+using std::array;
+using std::string;
+using std::vector;
+
+namespace Theme {
+	extern std::filesystem::path theme_dir;
+	extern std::filesystem::path user_theme_dir;
+
+	//* Contains "Default" and "TTY" at indices 0 and 1, otherwise full paths to theme files
+	extern vector<string> themes;
+
+	//* Generate escape sequence for 24-bit or 256 color and return as a string
+	//* Args	hexa: ["#000000"-"#ffffff"] for color, ["#00"-"#ff"] for greyscale
+	//*			t_to_256: [true|false] convert 24bit value to 256 color value
+	//* 		depth: ["fg"|"bg"] for either a foreground color or a background color
+	string hex_to_color(string hexa, bool t_to_256=false, const string& depth="fg");
+
+	//* Generate escape sequence for 24-bit or 256 color and return as a string
+	//* Args	r: [0-255], g: [0-255], b: [0-255]
+	//*			t_to_256: [true|false] convert 24bit value to 256 color value
+	//* 		depth: ["fg"|"bg"] for either a foreground color or a background color
+	string dec_to_color(int r, int g, int b, bool t_to_256=false, const string& depth="fg");
+
+	//* Update list of paths for available themes
+	void updateThemes();
+
+	//* Set current theme from current "color_theme" value in config
+	void setTheme();
+
+	extern std::unordered_map<string, string> colors;
+	extern std::unordered_map<string, array<int, 3>> rgbs;
+	extern std::unordered_map<string, array<string, 101>> gradients;
+
+	//* Return escape code for color <name>
+	inline const string& c(const string& name) { return colors.at(name); }
+
+	//* Return array of escape codes for color gradient <name>
+	inline const array<string, 101>& g(const string& name) { return gradients.at(name); }
+
+	//* Return array of red, green and blue in decimal for color <name>
+	inline const std::array<int, 3>& dec(const string& name) { return rgbs.at(name); }
+
+}
