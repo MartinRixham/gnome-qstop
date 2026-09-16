@@ -112,7 +112,7 @@ help:
 	@printf "  install      Install qstop to \$$PREFIX ($(PREFIX))\n"
 	@printf "  uninstall    Uninstall qstop from \$$PREFIX\n"
 	@printf "  info         Display information about Environment,compiler and linker flags\n"
-	@printf "  test         Build and run the googletest suite (GTEST_DIR=$(GTEST_DIR))\n"
+	@printf "  test         Build and run the googletest suite (source in GTEST_DIR, else installed gtest)\n"
 
 #? Make the Directories
 directories:
@@ -165,12 +165,19 @@ $(BUILDDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT) | directories
 	@$(QUIET) || printf "\033[1;97mCompiling $<\033[0m\n"
 	@$(CXX) $(CXXFLAGS) $(INC) -MMD -c -o $@ $< || exit 1
 
-#? Tests, googletest is built from source as distributions ship it (Debian/Ubuntu: googletest package)
+#? Tests, googletest is built from source when present (Debian/Ubuntu: googletest package),
+#? otherwise the installed libraries are linked (Fedora: gtest-devel package)
 GTEST_DIR		?= /usr/src/googletest/googletest
 TESTDIR			:= tests
 TEST_SOURCES	:= $(sort $(wildcard $(TESTDIR)/*.$(SRCEXT)))
 override TEST_OBJECTS := $(patsubst $(TESTDIR)/%,$(BUILDDIR)/$(TESTDIR)/%,$(TEST_SOURCES:.$(SRCEXT)=.$(OBJEXT)))
-override GTEST_OBJECTS := $(BUILDDIR)/$(TESTDIR)/gtest-all.$(OBJEXT) $(BUILDDIR)/$(TESTDIR)/gtest_main.$(OBJEXT)
+ifneq ($(wildcard $(GTEST_DIR)/src/gtest-all.cc),)
+	override GTEST_OBJECTS := $(BUILDDIR)/$(TESTDIR)/gtest-all.$(OBJEXT) $(BUILDDIR)/$(TESTDIR)/gtest_main.$(OBJEXT)
+	override GTEST_LIBS :=
+else
+	override GTEST_OBJECTS :=
+	override GTEST_LIBS := $(shell pkg-config --libs gtest_main 2>/dev/null || echo "-lgtest_main -lgtest")
+endif
 override TEST_CXXFLAGS := $(CXXFLAGS) -isystem $(GTEST_DIR)/include -DQSTOP_TEST_FIXTURES=\"$(CURDIR)/$(TESTDIR)/fixtures\"
 
 -include $(TEST_OBJECTS:.$(OBJEXT)=.$(DEPEXT))
@@ -180,7 +187,7 @@ test: $(TARGETDIR)/qstop_tests
 
 $(TARGETDIR)/qstop_tests: $(TEST_OBJECTS) $(GTEST_OBJECTS) $(filter-out $(BUILDDIR)/main.$(OBJEXT),$(OBJECTS)) | directories
 	@$(QUIET) || printf "\033[1;92mLinking tests\033[37m...\033[0m\n"
-	@$(CXX) -o $@ $^ $(LDFLAGS) || exit 1
+	@$(CXX) -o $@ $^ $(LDFLAGS) $(GTEST_LIBS) || exit 1
 
 $(BUILDDIR)/$(TESTDIR)/%.$(OBJEXT): $(TESTDIR)/%.$(SRCEXT) | directories
 	@mkdir -p $(BUILDDIR)/$(TESTDIR)
