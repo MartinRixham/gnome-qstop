@@ -356,7 +356,8 @@ namespace Network {
 				info.wifi_state = f[2];
 				if (f[2].starts_with("connect")) info.wifi_connection = f[3];
 			}
-			else if (f[1] == "ethernet" and not info.has_wired) {
+			//? Devices without a cable are unavailable, GNOME hides them and unmanaged devices
+			else if (f[1] == "ethernet" and not info.has_wired and not is_in(f[2], "unavailable", "unmanaged")) {
 				info.has_wired = true;
 				info.wired_device = f[0];
 				info.wired_connected = (f[2] == "connected");

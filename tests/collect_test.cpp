@@ -290,3 +290,13 @@ TEST(PactlFallback, NotUsedWhenWpctlWorks) {
 	EXPECT_EQ(info.volume, 72);
 	EXPECT_EQ(info.sink, "73");
 }
+
+TEST_F(WiredToggle, HiddenWhenEthernetUnmanaged) {
+	string devices = fixture("nmcli-device.txt");
+	const string unavailable = "eth0:ethernet:unavailable:";
+	ASSERT_NE(devices.find(unavailable), string::npos);
+	devices.replace(devices.find(unavailable), unavailable.size(), "eth0:ethernet:unmanaged:");
+
+	collect(devices, "GENERAL.STATE:10 (unmanaged)\nWIRED-PROPERTIES.CARRIER:on\n");
+	EXPECT_FALSE(has_toggle("wired"));
+}
