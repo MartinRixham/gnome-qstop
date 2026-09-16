@@ -237,3 +237,56 @@ TEST_F(WiredToggle, ShownWhenConnected) {
 	EXPECT_TRUE(info.wired_connected);
 	EXPECT_EQ(info.wired_connection, "netplan-eth0");
 }
+
+//? ------------------------------------------ pactl fallback -----------------------------------------------------------
+
+namespace {
+	const string pactl_sinks = "Sink #52\n\tName: alsa_output.hdmi-stereo\n\tDescription: Built-in Audio Digital Stereo (HDMI)\n"
+		"\tMute: no\n\tVolume: front-left: 26214 /  40% / -23.88 dB,   front-right: 26214 /  40% / -23.88 dB\n";
+	const string pactl_sources = "Source #53\n\tName: alsa_output.hdmi-stereo.monitor\n\tDescription: Monitor of Built-in Audio\n"
+		"\tMute: no\n\tVolume: front-left: 65536 / 100% / 0.00 dB,   front-right: 65536 / 100% / 0.00 dB\n";
+
+	std::map<string, string> pactl_responses() {
+		return {
+			{"get-default-sink", "alsa_output.hdmi-stereo\n"},
+			{"get-default-source", "alsa_output.hdmi-stereo.monitor\n"},
+			{"list sinks", pactl_sinks},
+			{"list sources", pactl_sources},
+		};
+	}
+}
+
+TEST(PactlFallback, UsedWhenWpctlMissing) {
+	FakeCommands commands;
+	commands.add("pactl", pactl_responses());
+	Audio::audio_info info;
+	Audio::collect(info);
+	EXPECT_TRUE(info.available);
+	EXPECT_FALSE(info.wpctl);
+	EXPECT_TRUE(info.has_sink);
+	EXPECT_EQ(info.sink, "alsa_output.hdmi-stereo");
+	EXPECT_EQ(info.volume, 40);
+	EXPECT_FALSE(info.has_source);
+}
+
+TEST(PactlFallback, UsedWhenWpctlCannotReachPipeWire) {
+	FakeCommands commands;
+	commands.add("wpctl", {});
+	commands.add("pactl", pactl_responses());
+	Audio::audio_info info;
+	Audio::collect(info);
+	EXPECT_TRUE(info.available);
+	EXPECT_FALSE(info.wpctl);
+	EXPECT_EQ(info.volume, 40);
+}
+
+TEST(PactlFallback, NotUsedWhenWpctlWorks) {
+	FakeCommands commands;
+	commands.add("wpctl", pi_wpctl(fixture("wpctl-status.txt"), fixture("wpctl-get-volume-sink.txt")));
+	commands.add("pactl", pactl_responses());
+	Audio::audio_info info;
+	Audio::collect(info);
+	EXPECT_TRUE(info.wpctl);
+	EXPECT_EQ(info.volume, 72);
+	EXPECT_EQ(info.sink, "73");
+}

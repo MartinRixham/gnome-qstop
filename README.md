@@ -31,8 +31,8 @@ btop's keyboard/mouse conventions.
 | Settings button             | `t`, submenus link to their Settings panel         | `gnome-control-center`                   |
 | Lock button                 | `l`                                                | `org.gnome.ScreenSaver`, `loginctl`      |
 | Power Off / Log Out menu    | `p`: Suspend, Restart, Power Off, Log Out          | `systemctl`, `gnome-session-quit`        |
-| Volume slider + output menu | Mute, adjust, choose output device                 | `pactl` (PipeWire / PulseAudio)          |
-| Microphone slider + menu    | Mute, adjust, choose input device                  | `pactl`                                  |
+| Volume slider + output menu | Mute, adjust, choose output device                 | `wpctl`, falling back to `pactl`         |
+| Microphone slider + menu    | Mute, adjust, choose input device                  | `wpctl`, falling back to `pactl`         |
 | Brightness slider           | Screen backlight                                   | logind `SetBrightness` or `brightnessctl`|
 | Keyboard backlight          | Keyboard backlight slider                          | logind `SetBrightness` or `brightnessctl`|
 | Wired                       | Connect / disconnect                               | `nmcli`                                  |

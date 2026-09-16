@@ -78,6 +78,7 @@ namespace Audio {
 
 	struct audio_info {
 		bool available = false;
+		bool wpctl = false; //? Controlled through WirePlumber's wpctl, otherwise pactl
 		bool has_sink = false, has_source = false;
 		int volume = 0;
 		bool muted = false;

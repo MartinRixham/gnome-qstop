@@ -111,30 +111,132 @@ namespace Audio {
 			}
 			return devices;
 		}
+
+		//* Parse a wpctl volume such as "0.72" or "0.72 MUTED" into <volume> percent and <muted>
+		bool parse_wpctl_volume(string_view str, int& volume, bool& muted) {
+			str = trim(str, " ");
+			const auto space = str.find(' ');
+			try { volume = max(0, (int)std::lround(std::stod(string(str.substr(0, space))) * 100)); }
+			catch (const std::exception&) { return false; }
+			muted = (space != string_view::npos and str.substr(space).contains("MUTED"));
+			return true;
+		}
+
+		//* Parse the Audio section of "wpctl status", where devices are listed as "│  *   73. Description [vol: 0.72 MUTED]"
+		//* with node ids as names, as wpctl addresses nodes by id. The default device of each kind is marked with '*'.
+		void parse_wpctl_status(const string& output, audio_info& info) {
+			string section, subsection;
+			bool sink_volume = false, source_volume = false;
+			for (const auto& line : ssplit(output, '\n')) {
+				if (not line.starts_with(' ')) {
+					section = trimmed(line);
+					subsection.clear();
+					continue;
+				}
+				if (section != "Audio") continue;
+				//? Subsection headers follow tree branches: " ├─ Sinks:"
+				if (const auto branch = line.find("─ "); branch != string::npos) {
+					subsection = trimmed(line.substr(branch + string("─ ").size()));
+					continue;
+				}
+				const bool sinks = (subsection == "Sinks:");
+				if (not sinks and subsection != "Sources:") continue;
+
+				const auto digit = line.find_first_of("0123456789");
+				const auto dot = line.find(". ", digit);
+				if (digit == string::npos or dot == string::npos or not isint(string_view(line).substr(digit, dot - digit))) continue;
+				const bool is_default = line.substr(0, digit).contains('*');
+
+				string description = trimmed(line.substr(dot + 2));
+				int volume = 0;
+				bool muted = false, has_volume = false;
+				if (const auto vol = description.rfind(" [vol: "); vol != string::npos and description.ends_with(']')) {
+					has_volume = parse_wpctl_volume(string_view(description).substr(vol + 7, description.size() - vol - 8), volume, muted);
+					description = trimmed(description.substr(0, vol));
+				}
+
+				device dev{line.substr(digit, dot - digit), description};
+				if (is_default) {
+					if (sinks) {
+						info.has_sink = true;
+						info.sink = dev.name;
+						info.volume = volume;
+						info.muted = muted;
+						sink_volume = has_volume;
+					}
+					else {
+						info.has_source = true;
+						info.source = dev.name;
+						info.mic_volume = volume;
+						info.mic_muted = muted;
+						source_volume = has_volume;
+					}
+				}
+				(sinks ? info.sinks : info.sources).push_back(std::move(dev));
+			}
+
+			//? Nodes without volume in the listing are asked directly
+			if (info.has_sink and not sink_volume)
+				parse_wpctl_volume(ltrim(trimmed(exec({"wpctl", "get-volume", info.sink}).output), "Volume:"), info.volume, info.muted);
+			if (info.has_source and not source_volume)
+				parse_wpctl_volume(ltrim(trimmed(exec({"wpctl", "get-volume", info.source}).output), "Volume:"), info.mic_volume, info.mic_muted);
+		}
+
+		bool collect_wpctl(audio_info& info) {
+			if (not command_exists("wpctl")) return false;
+			auto status = exec({"wpctl", "status"});
+			if (status.status != 0 or not status.output.contains("\nAudio")) return false;
+			info.available = true;
+			info.wpctl = true;
+			parse_wpctl_status(status.output, info);
+			return true;
+		}
+
+		void collect_pactl(audio_info& info) {
+			if (not command_exists("pactl")) return;
+			auto default_sink = exec({"pactl", "get-default-sink"});
+			if (default_sink.status != 0) return;
+			info.available = true;
+			info.sink = trimmed(default_sink.output);
+			info.source = trimmed(exec({"pactl", "get-default-source"}).output);
+
+			auto sinks = exec({"pactl", "list", "sinks"});
+			info.sinks = parse_devices(sinks.output, info.sink, false, info.volume, info.muted, info.has_sink);
+
+			auto sources = exec({"pactl", "list", "sources"});
+			info.sources = parse_devices(sources.output, info.source, true, info.mic_volume, info.mic_muted, info.has_source);
+			if (info.source.ends_with(".monitor")) info.has_source = false;
+		}
+
+		//* Command setting the volume of the default sink or source to <percent>
+		vector<string> volume_cmd(bool sink, int percent) {
+			if (current.wpctl) return {"wpctl", "set-volume", (sink ? "@DEFAULT_AUDIO_SINK@" : "@DEFAULT_AUDIO_SOURCE@"), to_string(percent) + '%'};
+			return {"pactl", (sink ? "set-sink-volume" : "set-source-volume"), (sink ? "@DEFAULT_SINK@" : "@DEFAULT_SOURCE@"), to_string(percent) + '%'};
+		}
+
+		//* Command muting or unmuting the default sink or source
+		vector<string> mute_cmd(bool sink, bool mute) {
+			if (current.wpctl) return {"wpctl", "set-mute", (sink ? "@DEFAULT_AUDIO_SINK@" : "@DEFAULT_AUDIO_SOURCE@"), (mute ? "1" : "0")};
+			return {"pactl", (sink ? "set-sink-mute" : "set-source-mute"), (sink ? "@DEFAULT_SINK@" : "@DEFAULT_SOURCE@"), (mute ? "1" : "0")};
+		}
+
+		//* Command making device <name> the default sink or source
+		vector<string> default_cmd(bool sink, const string& name) {
+			if (current.wpctl) return {"wpctl", "set-default", name};
+			return {"pactl", (sink ? "set-default-sink" : "set-default-source"), name};
+		}
 	}
 
 	void collect(audio_info& info) {
-		if (not command_exists("pactl")) return;
-		auto default_sink = exec({"pactl", "get-default-sink"});
-		if (default_sink.status != 0) return;
-		info.available = true;
-		info.sink = trimmed(default_sink.output);
-		info.source = trimmed(exec({"pactl", "get-default-source"}).output);
-
-		auto sinks = exec({"pactl", "list", "sinks"});
-		info.sinks = parse_devices(sinks.output, info.sink, false, info.volume, info.muted, info.has_sink);
-
-		auto sources = exec({"pactl", "list", "sources"});
-		info.sources = parse_devices(sources.output, info.source, true, info.mic_volume, info.mic_muted, info.has_source);
-		if (info.source.ends_with(".monitor")) info.has_source = false;
+		if (not collect_wpctl(info)) collect_pactl(info);
 	}
 
 	void set_volume(int percent) {
 		const int max_volume = (Config::getB("allow_volume_above_100") ? 150 : 100);
 		percent = clamp(percent, 0, max_volume);
-		vector<vector<string>> cmds = {{"pactl", "set-sink-volume", "@DEFAULT_SINK@", to_string(percent) + '%'}};
+		vector<vector<string>> cmds = {volume_cmd(true, percent)};
 		//? Moving the slider unmutes, as in GNOME
-		if (current.muted and percent > 0) cmds.push_back({"pactl", "set-sink-mute", "@DEFAULT_SINK@", "0"});
+		if (current.muted and percent > 0) cmds.push_back(mute_cmd(true, false));
 		current.volume = percent;
 		current.muted = current.muted and percent == 0;
 		Runner::queue("volume", std::move(cmds), 3000, false, "Failed to set volume");
@@ -142,13 +244,13 @@ namespace Audio {
 
 	void set_mute(bool mute) {
 		current.muted = mute;
-		Runner::queue("volume_mute", {{"pactl", "set-sink-mute", "@DEFAULT_SINK@", (mute ? "1" : "0")}}, 3000, false, "Failed to mute output");
+		Runner::queue("volume_mute", {mute_cmd(true, mute)}, 3000, false, "Failed to mute output");
 	}
 
 	void set_mic_volume(int percent) {
 		percent = clamp(percent, 0, 100);
-		vector<vector<string>> cmds = {{"pactl", "set-source-volume", "@DEFAULT_SOURCE@", to_string(percent) + '%'}};
-		if (current.mic_muted and percent > 0) cmds.push_back({"pactl", "set-source-mute", "@DEFAULT_SOURCE@", "0"});
+		vector<vector<string>> cmds = {volume_cmd(false, percent)};
+		if (current.mic_muted and percent > 0) cmds.push_back(mute_cmd(false, false));
 		current.mic_volume = percent;
 		current.mic_muted = current.mic_muted and percent == 0;
 		Runner::queue("mic", std::move(cmds), 3000, false, "Failed to set microphone volume");
@@ -156,17 +258,17 @@ namespace Audio {
 
 	void set_mic_mute(bool mute) {
 		current.mic_muted = mute;
-		Runner::queue("mic_mute", {{"pactl", "set-source-mute", "@DEFAULT_SOURCE@", (mute ? "1" : "0")}}, 3000, false, "Failed to mute microphone");
+		Runner::queue("mic_mute", {mute_cmd(false, mute)}, 3000, false, "Failed to mute microphone");
 	}
 
 	void set_sink(const string& name) {
 		current.sink = name;
-		Runner::queue("sink", {{"pactl", "set-default-sink", name}}, 3000, false, "Failed to change output device");
+		Runner::queue("sink", {default_cmd(true, name)}, 3000, false, "Failed to change output device");
 	}
 
 	void set_source(const string& name) {
 		current.source = name;
-		Runner::queue("source", {{"pactl", "set-default-source", name}}, 3000, false, "Failed to change input device");
+		Runner::queue("source", {default_cmd(false, name)}, 3000, false, "Failed to change input device");
 	}
 }
 
