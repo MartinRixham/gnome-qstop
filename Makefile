@@ -112,6 +112,7 @@ help:
 	@printf "  install      Install qstop to \$$PREFIX ($(PREFIX))\n"
 	@printf "  uninstall    Uninstall qstop from \$$PREFIX\n"
 	@printf "  info         Display information about Environment,compiler and linker flags\n"
+	@printf "  test         Build and run the googletest suite (GTEST_DIR=$(GTEST_DIR))\n"
 
 #? Make the Directories
 directories:
@@ -164,5 +165,32 @@ $(BUILDDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT) | directories
 	@$(QUIET) || printf "\033[1;97mCompiling $<\033[0m\n"
 	@$(CXX) $(CXXFLAGS) $(INC) -MMD -c -o $@ $< || exit 1
 
+#? Tests, googletest is built from source as distributions ship it (Debian/Ubuntu: googletest package)
+GTEST_DIR		?= /usr/src/googletest/googletest
+TESTDIR			:= tests
+TEST_SOURCES	:= $(sort $(wildcard $(TESTDIR)/*.$(SRCEXT)))
+override TEST_OBJECTS := $(patsubst $(TESTDIR)/%,$(BUILDDIR)/$(TESTDIR)/%,$(TEST_SOURCES:.$(SRCEXT)=.$(OBJEXT)))
+override GTEST_OBJECTS := $(BUILDDIR)/$(TESTDIR)/gtest-all.$(OBJEXT) $(BUILDDIR)/$(TESTDIR)/gtest_main.$(OBJEXT)
+override TEST_CXXFLAGS := $(CXXFLAGS) -isystem $(GTEST_DIR)/include -DQSTOP_TEST_FIXTURES=\"$(CURDIR)/$(TESTDIR)/fixtures\"
+
+-include $(TEST_OBJECTS:.$(OBJEXT)=.$(DEPEXT))
+
+test: $(TARGETDIR)/qstop_tests
+	@$(TARGETDIR)/qstop_tests
+
+$(TARGETDIR)/qstop_tests: $(TEST_OBJECTS) $(GTEST_OBJECTS) $(filter-out $(BUILDDIR)/main.$(OBJEXT),$(OBJECTS)) | directories
+	@$(QUIET) || printf "\033[1;92mLinking tests\033[37m...\033[0m\n"
+	@$(CXX) -o $@ $^ $(LDFLAGS) || exit 1
+
+$(BUILDDIR)/$(TESTDIR)/%.$(OBJEXT): $(TESTDIR)/%.$(SRCEXT) | directories
+	@mkdir -p $(BUILDDIR)/$(TESTDIR)
+	@$(QUIET) || printf "\033[1;97mCompiling $<\033[0m\n"
+	@$(CXX) $(TEST_CXXFLAGS) $(INC) -MMD -c -o $@ $< || exit 1
+
+$(BUILDDIR)/$(TESTDIR)/gtest%.$(OBJEXT): $(GTEST_DIR)/src/gtest%.cc | directories
+	@mkdir -p $(BUILDDIR)/$(TESTDIR)
+	@$(QUIET) || printf "\033[1;97mCompiling $<\033[0m\n"
+	@$(CXX) $(REQFLAGS) $(LDCXXFLAGS) $(OPTFLAGS) -isystem $(GTEST_DIR)/include -I$(GTEST_DIR) -c -o $@ $< || exit 1
+
 #? Non-File Targets
-.PHONY: all info help clean distclean install uninstall directories
+.PHONY: all info help clean distclean install uninstall directories test

@@ -1,0 +1,10 @@
+CommunityFibre10Gb_E8993:802-11-wireless:yes
+lo:loopback:yes
+Amsterdam:wireguard:no
+Berlin:wireguard:no
+Bordeaux:wireguard:no
+London:wireguard:no
+Milan:wireguard:no
+netplan-eth0:802-3-ethernet:no
+New York:wireguard:no
+Paris:wireguard:no

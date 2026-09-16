@@ -1,0 +1,62 @@
+PipeWire 'pipewire-0' [1.6.2, martin@pi, cookie:1937838609]
+ └─ Clients:
+        33. pipewire                            [1.6.2, martin@pi, pid:2958]
+        35. WirePlumber                         [1.6.2, martin@pi, pid:2954]
+        40. WirePlumber [export]                [1.6.2, martin@pi, pid:2954]
+        44. GNOME Volume Control Media Keys     [1.6.2, martin@pi, pid:3539]
+        74. gnome-shell                         [1.6.2, martin@pi, pid:3404]
+        75. GNOME Shell Volume Control          [1.6.2, martin@pi, pid:3404]
+        76. xdg-desktop-portal                  [1.6.2, martin@pi, pid:4070]
+        77. Mutter                              [1.6.2, martin@pi, pid:3404]
+        78. Firefox                             [1.6.2, martin@pi, pid:4387]
+        80. speech-dispatcher-dummy             [1.6.2, martin@pi, pid:6837]
+        90. wpctl                               [1.6.2, martin@pi, pid:26759]
+
+Audio
+ ├─ Devices:
+ │      48. Built-in Audio                      [alsa]
+ │      52. Built-in Audio                      [alsa]
+ │  
+ ├─ Sinks:
+ │  *   73. Built-in Audio Digital Stereo (HDMI) [vol: 0.72]
+ │  
+ ├─ Sources:
+ │  
+ ├─ Filters:
+ │  
+ └─ Streams:
+        83. speech-dispatcher-dummy                                     
+             79. output_FR       > MAI PCM i2s-hifi-0:playback_FR	[init]
+             81. output_FL       > MAI PCM i2s-hifi-0:playback_FL	[init]
+
+Video
+ ├─ Devices:
+ │      53. pispbe                              [v4l2]
+ │      54. rpi-hevc-dec                        [v4l2]
+ │      55. pispbe                              [v4l2]
+ │      56. pispbe                              [v4l2]
+ │      57. pispbe                              [v4l2]
+ │      58. pispbe                              [v4l2]
+ │      59. pispbe                              [v4l2]
+ │      60. pispbe                              [v4l2]
+ │      61. pispbe                              [v4l2]
+ │      62. pispbe                              [v4l2]
+ │      63. pispbe                              [v4l2]
+ │      64. pispbe                              [v4l2]
+ │      65. pispbe                              [v4l2]
+ │      66. pispbe                              [v4l2]
+ │      67. pispbe                              [v4l2]
+ │      68. pispbe                              [v4l2]
+ │      69. pispbe                              [v4l2]
+ │  
+ ├─ Sinks:
+ │  
+ ├─ Sources:
+ │  
+ ├─ Filters:
+ │  
+ └─ Streams:
+
+Settings
+ └─ Default Configured Devices:
+         0. Audio/Sink    bluez_output.84_17_15_05_D9_57.1

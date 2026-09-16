@@ -1,0 +1,1 @@
+*:CommunityFibre10Gb_E8993:61:WPA2
