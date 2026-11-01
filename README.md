@@ -30,7 +30,7 @@ btop's keyboard/mouse conventions.
 | Screenshot button           | `s`                                                | xdg-desktop-portal (`gdbus`)             |
 | Settings button             | `t`, submenus link to their Settings panel         | `gnome-control-center`                   |
 | Lock button                 | `l`                                                | `org.gnome.ScreenSaver`, `loginctl`      |
-| Power Off / Log Out menu    | `p`: Suspend, Restart, Power Off, Log Out          | `systemctl`, `gnome-session-quit`        |
+| Power Off / Log Out menu    | `p`: Suspend, Restart, Power Off, Log Out          | `loginctl`, `gnome-session-quit`        |
 | Volume slider + output menu | Mute, adjust, choose output device                 | `wpctl`, falling back to `pactl`         |
 | Microphone slider + menu    | Mute, adjust, choose input device                  | `wpctl`, falling back to `pactl`         |
 | Brightness slider           | Screen backlight                                   | logind `SetBrightness` or `brightnessctl`|

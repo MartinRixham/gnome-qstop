@@ -54,7 +54,7 @@ namespace fs = std::filesystem;
 using namespace Tools;
 
 namespace Global {
-	const string Version = "1.0.0";
+	const string Version = "1.0.1";
 
 	atomic<bool> quitting (false);
 	atomic<bool> should_quit (false);
