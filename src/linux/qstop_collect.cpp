@@ -624,13 +624,13 @@ namespace Power {
 	void run_action(Action action) {
 		switch (action) {
 			case Action::Suspend:
-				Runner::queue("power_action", {{"systemctl", "suspend"}}, 10000, false, "Failed to suspend");
+				Runner::queue("power_action", {{"loginctl", "suspend"}}, 10000, false, "Failed to suspend");
 				break;
 			case Action::Restart:
-				Runner::queue("power_action", {{"systemctl", "reboot"}}, 10000, false, "Failed to restart");
+				Runner::queue("power_action", {{"loginctl", "reboot"}}, 10000, false, "Failed to restart");
 				break;
 			case Action::PowerOff:
-				Runner::queue("power_action", {{"systemctl", "poweroff"}}, 10000, false, "Failed to power off");
+				Runner::queue("power_action", {{"loginctl", "poweroff"}}, 10000, false, "Failed to power off");
 				break;
 			case Action::LogOut: {
 				vector<vector<string>> cmds = {{"gnome-session-quit", "--logout", "--no-prompt"}};
